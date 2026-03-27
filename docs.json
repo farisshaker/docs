@@ -1,122 +1,623 @@
-{
-  "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
-  "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
-  },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
-          }
-        ]
+import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  FileText,
+  HeartPulse,
+  Activity,
+  Stethoscope,
+  Wind,
+  Brain,
+  TimerReset,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+
+const steps = [
+  { key: 'intake', label: 'Intake', icon: ClipboardList },
+  { key: 'injury', label: 'Injury', icon: Brain },
+  { key: 'confounders', label: 'Confounders', icon: AlertTriangle },
+  { key: 'physiology', label: 'Physiology', icon: HeartPulse },
+  { key: 'exam', label: 'Neuro Exam', icon: Stethoscope },
+  { key: 'apnea', label: 'Apnea', icon: Wind },
+  { key: 'summary', label: 'Summary', icon: FileText },
+];
+
+const initialForm = {
+  patientId: '',
+  age: '',
+  sex: 'male',
+  heightCm: '',
+  weightKg: '',
+  unit: '',
+  ecmoType: 'none',
+  ventilated: true,
+  primaryTeam: '',
+  mechanism: '',
+  injuryTime: '',
+  permanentInjuryKnown: false,
+  mechanismCompatible: false,
+  imagingConsistent: false,
+  hibi: false,
+  observationAdequate: false,
+  tempC: '',
+  sbp: '',
+  map: '',
+  spo2: '',
+  rr: '',
+  fio2: '',
+  ph: '',
+  paco2: '',
+  pao2: '',
+  cnsDepressantCleared: false,
+  paralysisExcluded: false,
+  severeMetabolicIssue: false,
+  severeEndocrineIssue: false,
+  intoxicationConcern: false,
+  highCSpineOrFacialBarrier: false,
+  coma: false,
+  noCerebralMotor: false,
+  pupilsAbsent: false,
+  ocrAbsent: false,
+  ovrAbsent: false,
+  cornealAbsent: false,
+  gagAbsent: false,
+  coughAbsent: false,
+  unsafeOcr: false,
+  otherExamBarrier: false,
+  apneaMethod: 'cpap-vent',
+  preoxygenated: false,
+  arterialLine: false,
+  hypoxemiaRisk: false,
+  hypotensionRisk: false,
+  hypovolemiaRisk: false,
+  chronicHypercarbia: false,
+  baselineKnown: false,
+  availablePeople: '3',
+  hasMd: true,
+  hasRn: true,
+  hasRt: true,
+  hasTimekeeper: false,
+  hasChestObserver: false,
+  hasCodeSupport: false,
+  spontaneousRespirations: false,
+  postApneaPh: '',
+  postApneaPaco2: '',
+  notes: '',
+};
+
+function toNumber(value) {
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function calcBmi(heightCm, weightKg) {
+  const h = toNumber(heightCm);
+  const w = toNumber(weightKg);
+  if (!h || !w) return null;
+  const meters = h / 100;
+  return w / (meters * meters);
+}
+
+function statusBadge(kind, text) {
+  const styles = {
+    good: 'bg-green-100 text-green-800 border-green-200',
+    warn: 'bg-amber-100 text-amber-800 border-amber-200',
+    bad: 'bg-red-100 text-red-800 border-red-200',
+    neutral: 'bg-slate-100 text-slate-800 border-slate-200',
+  };
+  return <Badge className={`border ${styles[kind]}`}>{text}</Badge>;
+}
+
+function SectionHeader({ icon: Icon, title, subtitle }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="rounded-2xl bg-slate-100 p-2">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+        <p className="text-sm text-slate-600">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function YesNoField({ label, value, onChange }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl border p-4">
+      <Label className="pr-4 text-sm leading-5">{label}</Label>
+      <Switch checked={value} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+function MetricField({ label, value, onChange, placeholder }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input value={value} onChange={onChange} placeholder={placeholder} />
+    </div>
+  );
+}
+
+export default function BDDNCPrototype() {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState(initialForm);
+
+  const bmi = useMemo(() => calcBmi(form.heightCm, form.weightKg), [form.heightCm, form.weightKg]);
+
+  const derived = useMemo(() => {
+    const tempC = toNumber(form.tempC);
+    const sbp = toNumber(form.sbp);
+    const map = toNumber(form.map);
+    const spo2 = toNumber(form.spo2);
+    const ph = toNumber(form.ph);
+    const paco2 = toNumber(form.paco2);
+    const pao2 = toNumber(form.pao2);
+    const postApneaPh = toNumber(form.postApneaPh);
+    const postApneaPaco2 = toNumber(form.postApneaPaco2);
+
+    const injuryGatePass =
+      form.permanentInjuryKnown && form.mechanismCompatible && form.imagingConsistent && form.observationAdequate;
+
+    const confounderBlocked =
+      !form.cnsDepressantCleared ||
+      !form.paralysisExcluded ||
+      form.severeMetabolicIssue ||
+      form.severeEndocrineIssue ||
+      form.intoxicationConcern;
+
+    const physiologyIssues = [];
+    if (tempC !== null && tempC < 36) physiologyIssues.push('Core temperature below 36°C');
+    if (sbp !== null && sbp < 100) physiologyIssues.push('SBP below 100 mm Hg');
+    if (map !== null && map < 75) physiologyIssues.push('MAP below 75 mm Hg');
+    if (spo2 !== null && spo2 < 95) physiologyIssues.push('Oxygen saturation may be inadequate for apnea readiness');
+    if (pao2 !== null && pao2 < 200) physiologyIssues.push('Pre-apnea PaO2 target not yet demonstrated');
+    if (ph !== null && ph < 7.2) physiologyIssues.push('Severe acid-base disturbance may need correction before proceeding');
+
+    const examBarrier = form.otherExamBarrier;
+    const oculoBarrierNeedsOVRorAncillary = form.unsafeOcr && !form.ovrAbsent;
+
+    const examPassCore =
+      form.coma &&
+      form.noCerebralMotor &&
+      form.pupilsAbsent &&
+      form.cornealAbsent &&
+      form.gagAbsent &&
+      form.coughAbsent &&
+      (form.unsafeOcr ? form.ovrAbsent : form.ocrAbsent);
+
+    const apneaReadinessIssues = [];
+    if (!form.preoxygenated) apneaReadinessIssues.push('Preoxygenation not completed');
+    if (form.hypoxemiaRisk) apneaReadinessIssues.push('High hypoxemia risk');
+    if (form.hypotensionRisk) apneaReadinessIssues.push('High hypotension risk');
+    if (form.hypovolemiaRisk) apneaReadinessIssues.push('Hypovolemia concern');
+    if (!form.arterialLine) apneaReadinessIssues.push('Arterial line not documented');
+    if (form.chronicHypercarbia && !form.baselineKnown) apneaReadinessIssues.push('Chronic hypercarbia suspected but baseline PaCO2 unknown');
+
+    const ancillaryIndications = [];
+    if (examBarrier) ancillaryIndications.push('Part of neurologic exam cannot be completed safely or interpreted adequately');
+    if (oculoBarrierNeedsOVRorAncillary) ancillaryIndications.push('OCR unsafe and OVR not documented absent');
+    if (apneaReadinessIssues.length > 0) ancillaryIndications.push('Apnea test may be unsafe or incomplete in current state');
+    if (form.chronicHypercarbia && !form.baselineKnown) ancillaryIndications.push('Chronic hypercarbia with unknown baseline may affect apnea interpretation');
+    if (confounderBlocked) ancillaryIndications.push('Residual confounders remain — testing may be invalid until corrected');
+
+    let apneaInterpretation = 'Not yet interpretable';
+    if (form.spontaneousRespirations) {
+      apneaInterpretation = 'Spontaneous respirations documented — apnea test not consistent with BD/DNC';
+    } else if (postApneaPh !== null && postApneaPaco2 !== null) {
+      if (postApneaPh < 7.3 && postApneaPaco2 >= 60 && paco2 !== null && postApneaPaco2 - paco2 >= 20) {
+        apneaInterpretation = 'No respirations and post-test gas thresholds reached';
+      } else {
+        apneaInterpretation = 'No respirations documented, but gas targets are not fully reached yet';
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
     }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+
+    let overallStatus = 'Incomplete';
+    const blockers = [];
+
+    if (!injuryGatePass) blockers.push('Mechanism/permanency requirements not yet satisfied');
+    if (confounderBlocked) blockers.push('Confounders not adequately cleared');
+    if (physiologyIssues.length > 0) blockers.push(...physiologyIssues);
+    if (!examPassCore) blockers.push('Neurologic exam criteria are incomplete or not yet consistent');
+
+    const apneaSucceeded =
+      !form.spontaneousRespirations &&
+      postApneaPh !== null &&
+      postApneaPaco2 !== null &&
+      postApneaPh < 7.3 &&
+      postApneaPaco2 >= 60 &&
+      paco2 !== null &&
+      postApneaPaco2 - paco2 >= 20;
+
+    if (injuryGatePass && !confounderBlocked && physiologyIssues.length === 0 && examPassCore && apneaSucceeded) {
+      overallStatus = ancillaryIndications.length > 0
+        ? 'Findings may support pathway, but unresolved barriers remain'
+        : 'Findings consistent with adult BD/DNC workflow pending clinician and policy review';
+    } else if (form.spontaneousRespirations) {
+      overallStatus = 'Not consistent with BD/DNC pathway';
     }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
-  }
+
+    const recommendations = [];
+    if (!injuryGatePass) recommendations.push('Confirm catastrophic permanent brain injury, compatible mechanism, imaging consistency, and adequate observation period before proceeding.');
+    if (!form.cnsDepressantCleared) recommendations.push('Hold until CNS depressant effects are adequately excluded, including delayed clearance if relevant.');
+    if (!form.paralysisExcluded) recommendations.push('Document exclusion of pharmacologic paralysis before exam interpretation.');
+    if (form.severeMetabolicIssue || form.severeEndocrineIssue || form.intoxicationConcern) recommendations.push('Correct or exclude metabolic, endocrine, or toxic confounders before continuing.');
+    if (physiologyIssues.length > 0) recommendations.push('Stabilize temperature, blood pressure, and oxygenation before formal exam/apnea testing.');
+    if (!examPassCore) recommendations.push('Complete the neurologic exam and use alternative pathways for unsafe components where applicable.');
+    if (form.unsafeOcr && !form.ovrAbsent) recommendations.push('If OCR is unsafe, document absent OVR or consider ancillary testing if the eye movement pathway remains incomplete.');
+    if (apneaReadinessIssues.length > 0) recommendations.push('Do not start apnea testing until readiness issues are addressed.');
+    if (ancillaryIndications.length > 0) recommendations.push('Consider ancillary testing only if the clinical exam/apnea pathway cannot be safely completed or interpreted.');
+    if (apneaSucceeded) recommendations.push('Review the full case against local policy, documentation requirements, and examiner credentialing before final determination.');
+
+    const teamAssignments = [];
+    if (form.hasMd) teamAssignments.push('MD: leads exam, verifies prerequisites, interprets result');
+    if (form.hasRn) teamAssignments.push('RN: manages hemodynamics, medications, and safety monitoring');
+    if (form.hasRt) teamAssignments.push('RT: oxygenation strategy, ventilator/CPAP setup, airway support');
+    if (form.hasTimekeeper) teamAssignments.push('Timekeeper: tracks preoxygenation, disconnect time, and ABG timing');
+    if (form.hasChestObserver) teamAssignments.push('Observer: watches chest/abdomen continuously for respirations');
+    if (form.hasCodeSupport) teamAssignments.push('Resuscitation backup: ready to intervene if instability occurs');
+
+    return {
+      bmi,
+      injuryGatePass,
+      confounderBlocked,
+      physiologyIssues,
+      examPassCore,
+      apneaReadinessIssues,
+      ancillaryIndications,
+      apneaInterpretation,
+      overallStatus,
+      blockers,
+      recommendations,
+      teamAssignments,
+    };
+  }, [form, bmi]);
+
+  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const current = steps[step];
+  const progress = ((step + 1) / steps.length) * 100;
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid gap-4 lg:grid-cols-[320px_1fr]"
+        >
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                <Brain className="h-6 w-6" />
+                Adult BD/DNC Prototype
+              </CardTitle>
+              <p className="text-sm text-slate-600">
+                Mobile-first workflow prototype for adult neurologic determination of death.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Progress value={progress} />
+              <div className="space-y-2">
+                {steps.map((s, index) => {
+                  const Icon = s.icon;
+                  const active = index === step;
+                  return (
+                    <button
+                      key={s.key}
+                      onClick={() => setStep(index)}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                        active ? 'border-slate-900 bg-slate-900 text-white' : 'bg-white hover:bg-slate-100'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-sm font-medium">{s.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>Current status</span>
+                  {derived.overallStatus.includes('consistent')
+                    ? statusBadge('good', 'On pathway')
+                    : derived.overallStatus.includes('Not consistent')
+                    ? statusBadge('bad', 'Stopped')
+                    : statusBadge('warn', 'Incomplete')}
+                </div>
+                <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+                  {derived.overallStatus}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <SectionHeader
+                icon={current.icon}
+                title={current.label}
+                subtitle="Prototype logic only. Final determination remains clinician- and policy-dependent."
+              />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {step === 0 && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <MetricField label="Case ID" value={form.patientId} onChange={(e) => update('patientId', e.target.value)} placeholder="Case-001" />
+                  <MetricField label="Age" value={form.age} onChange={(e) => update('age', e.target.value)} placeholder="45" />
+                  <div className="space-y-2">
+                    <Label>Sex</Label>
+                    <RadioGroup value={form.sex} onValueChange={(v) => update('sex', v)} className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2 rounded-2xl border p-3"><RadioGroupItem value="male" id="male" /><Label htmlFor="male">Male</Label></div>
+                      <div className="flex items-center gap-2 rounded-2xl border p-3"><RadioGroupItem value="female" id="female" /><Label htmlFor="female">Female</Label></div>
+                    </RadioGroup>
+                  </div>
+                  <MetricField label="Unit / Location" value={form.unit} onChange={(e) => update('unit', e.target.value)} placeholder="Neuro ICU" />
+                  <MetricField label="Height (cm)" value={form.heightCm} onChange={(e) => update('heightCm', e.target.value)} placeholder="175" />
+                  <MetricField label="Weight (kg)" value={form.weightKg} onChange={(e) => update('weightKg', e.target.value)} placeholder="92" />
+                  <div className="rounded-2xl border p-4">
+                    <div className="text-sm text-slate-500">BMI</div>
+                    <div className="mt-1 text-2xl font-semibold">{bmi ? bmi.toFixed(1) : '—'}</div>
+                    <div className="mt-2 text-xs text-slate-500">Useful for planning, medication clearance context, and documentation.</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ECMO</Label>
+                    <RadioGroup value={form.ecmoType} onValueChange={(v) => update('ecmoType', v)} className="grid grid-cols-3 gap-3">
+                      {['none', 'VV', 'VA'].map((v) => (
+                        <div key={v} className="flex items-center gap-2 rounded-2xl border p-3">
+                          <RadioGroupItem value={v} id={v} />
+                          <Label htmlFor={v}>{v}</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                  <YesNoField label="Mechanically ventilated" value={form.ventilated} onChange={(v) => update('ventilated', v)} />
+                  <MetricField label="Primary team" value={form.primaryTeam} onChange={(e) => update('primaryTeam', e.target.value)} placeholder="Neurocritical Care" />
+                </div>
+              )}
+
+              {step === 1 && (
+                <div className="space-y-4">
+                  <MetricField label="Catastrophic injury mechanism" value={form.mechanism} onChange={(e) => update('mechanism', e.target.value)} placeholder="Large intracerebral hemorrhage with herniation" />
+                  <MetricField label="Time of injury/event" value={form.injuryTime} onChange={(e) => update('injuryTime', e.target.value)} placeholder="2026-03-26 08:15" />
+                  <YesNoField label="Identified catastrophic permanent brain injury" value={form.permanentInjuryKnown} onChange={(v) => update('permanentInjuryKnown', v)} />
+                  <YesNoField label="Mechanism known to be compatible with BD/DNC" value={form.mechanismCompatible} onChange={(v) => update('mechanismCompatible', v)} />
+                  <YesNoField label="Neuroimaging consistent with mechanism and severity" value={form.imagingConsistent} onChange={(v) => update('imagingConsistent', v)} />
+                  <YesNoField label="Acute hypoxic-ischemic brain injury" value={form.hibi} onChange={(v) => update('hibi', v)} />
+                  <YesNoField label="Observation period judged adequate before evaluation" value={form.observationAdequate} onChange={(v) => update('observationAdequate', v)} />
+
+                  <div className="rounded-2xl border p-4">
+                    <div className="mb-2 text-sm font-medium">Mechanism gate</div>
+                    {derived.injuryGatePass ? (
+                      <div className="flex items-center gap-2 text-green-700"><CheckCircle2 className="h-4 w-4" /> Ready to continue past mechanism/permanency gate</div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-amber-700"><AlertTriangle className="h-4 w-4" /> Do not proceed until injury mechanism, permanence, imaging support, and timing are clear</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-4">
+                  <YesNoField label="CNS depressant effects adequately excluded/cleared" value={form.cnsDepressantCleared} onChange={(v) => update('cnsDepressantCleared', v)} />
+                  <YesNoField label="Pharmacologic paralysis excluded" value={form.paralysisExcluded} onChange={(v) => update('paralysisExcluded', v)} />
+                  <YesNoField label="Severe metabolic derangement still present" value={form.severeMetabolicIssue} onChange={(v) => update('severeMetabolicIssue', v)} />
+                  <YesNoField label="Severe endocrine derangement still present" value={form.severeEndocrineIssue} onChange={(v) => update('severeEndocrineIssue', v)} />
+                  <YesNoField label="Intoxication / toxic exposure concern remains" value={form.intoxicationConcern} onChange={(v) => update('intoxicationConcern', v)} />
+                  <YesNoField label="C-spine, skull base, or facial barrier may affect some brainstem testing" value={form.highCSpineOrFacialBarrier} onChange={(v) => update('highCSpineOrFacialBarrier', v)} />
+
+                  <div className="rounded-2xl border p-4">
+                    <div className="mb-2 text-sm font-medium">Confounder status</div>
+                    {derived.confounderBlocked ? (
+                      <div className="space-y-2 text-sm text-red-700">
+                        <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Confounders remain. Formal interpretation should stop here.</div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-green-700"><CheckCircle2 className="h-4 w-4" /> No major confounder block identified from current inputs</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="grid gap-4 md:grid-cols-3">
+                  <MetricField label="Core Temp (°C)" value={form.tempC} onChange={(e) => update('tempC', e.target.value)} placeholder="36.2" />
+                  <MetricField label="SBP" value={form.sbp} onChange={(e) => update('sbp', e.target.value)} placeholder="108" />
+                  <MetricField label="MAP" value={form.map} onChange={(e) => update('map', e.target.value)} placeholder="78" />
+                  <MetricField label="SpO2 (%)" value={form.spo2} onChange={(e) => update('spo2', e.target.value)} placeholder="99" />
+                  <MetricField label="FiO2 (%)" value={form.fio2} onChange={(e) => update('fio2', e.target.value)} placeholder="100" />
+                  <MetricField label="Respiratory rate" value={form.rr} onChange={(e) => update('rr', e.target.value)} placeholder="16" />
+                  <MetricField label="Baseline pH" value={form.ph} onChange={(e) => update('ph', e.target.value)} placeholder="7.38" />
+                  <MetricField label="Baseline PaCO2" value={form.paco2} onChange={(e) => update('paco2', e.target.value)} placeholder="40" />
+                  <MetricField label="Baseline PaO2" value={form.pao2} onChange={(e) => update('pao2', e.target.value)} placeholder="240" />
+
+                  <div className="md:col-span-3 rounded-2xl border p-4">
+                    <div className="mb-2 text-sm font-medium">Physiology check</div>
+                    {derived.physiologyIssues.length === 0 ? (
+                      <div className="flex items-center gap-2 text-green-700"><CheckCircle2 className="h-4 w-4" /> No physiology blocker identified from current entries</div>
+                    ) : (
+                      <div className="space-y-2 text-sm text-amber-700">
+                        {derived.physiologyIssues.map((issue) => (
+                          <div key={issue} className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> {issue}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {step === 4 && (
+                <div className="space-y-4">
+                  <YesNoField label="Coma / unresponsive state documented" value={form.coma} onChange={(v) => update('coma', v)} />
+                  <YesNoField label="No cerebrally mediated motor response" value={form.noCerebralMotor} onChange={(v) => update('noCerebralMotor', v)} />
+                  <YesNoField label="Pupillary light reflex absent bilaterally" value={form.pupilsAbsent} onChange={(v) => update('pupilsAbsent', v)} />
+                  <YesNoField label="OCR unsafe or contraindicated" value={form.unsafeOcr} onChange={(v) => update('unsafeOcr', v)} />
+                  {!form.unsafeOcr ? (
+                    <YesNoField label="Oculocephalic reflex absent" value={form.ocrAbsent} onChange={(v) => update('ocrAbsent', v)} />
+                  ) : (
+                    <YesNoField label="Oculovestibular reflex absent bilaterally" value={form.ovrAbsent} onChange={(v) => update('ovrAbsent', v)} />
+                  )}
+                  <YesNoField label="Corneal reflex absent bilaterally" value={form.cornealAbsent} onChange={(v) => update('cornealAbsent', v)} />
+                  <YesNoField label="Gag reflex absent" value={form.gagAbsent} onChange={(v) => update('gagAbsent', v)} />
+                  <YesNoField label="Cough reflex absent" value={form.coughAbsent} onChange={(v) => update('coughAbsent', v)} />
+                  <YesNoField label="Other exam component unsafe / uninterpretable" value={form.otherExamBarrier} onChange={(v) => update('otherExamBarrier', v)} />
+
+                  <div className="rounded-2xl border p-4">
+                    <div className="mb-2 text-sm font-medium">Exam pathway</div>
+                    {derived.examPassCore ? (
+                      <div className="flex items-center gap-2 text-green-700"><CheckCircle2 className="h-4 w-4" /> Entered findings are internally consistent with the exam portion of the pathway</div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-amber-700"><AlertTriangle className="h-4 w-4" /> Exam remains incomplete or not yet consistent</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {step === 5 && (
+                <div className="space-y-5">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Apnea method</Label>
+                      <RadioGroup value={form.apneaMethod} onValueChange={(v) => update('apneaMethod', v)} className="space-y-2">
+                        {[
+                          ['cpap-vent', 'CPAP on ventilator'],
+                          ['o2-catheter', 'O2 insufflation catheter'],
+                          ['flow-bag', 'Flow-inflating bag with PEEP valve'],
+                        ].map(([value, label]) => (
+                          <div key={value} className="flex items-center gap-2 rounded-2xl border p-3">
+                            <RadioGroupItem value={value} id={value} />
+                            <Label htmlFor={value}>{label}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+
+                    <div className="space-y-3">
+                      <YesNoField label="Preoxygenation completed" value={form.preoxygenated} onChange={(v) => update('preoxygenated', v)} />
+                      <YesNoField label="Arterial line available" value={form.arterialLine} onChange={(v) => update('arterialLine', v)} />
+                      <YesNoField label="Hypoxemia risk present" value={form.hypoxemiaRisk} onChange={(v) => update('hypoxemiaRisk', v)} />
+                      <YesNoField label="Hypotension risk present" value={form.hypotensionRisk} onChange={(v) => update('hypotensionRisk', v)} />
+                      <YesNoField label="Hypovolemia concern present" value={form.hypovolemiaRisk} onChange={(v) => update('hypovolemiaRisk', v)} />
+                      <YesNoField label="Chronic hypercarbia suspected" value={form.chronicHypercarbia} onChange={(v) => update('chronicHypercarbia', v)} />
+                      {form.chronicHypercarbia && <YesNoField label="Known baseline PaCO2 available" value={form.baselineKnown} onChange={(v) => update('baselineKnown', v)} />}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-3 rounded-3xl border p-4">
+                      <div className="flex items-center gap-2 text-sm font-medium"><Activity className="h-4 w-4" /> Team planning</div>
+                      <div className="space-y-2">
+                        <Label>Available people</Label>
+                        <Input value={form.availablePeople} onChange={(e) => update('availablePeople', e.target.value)} placeholder="3" />
+                      </div>
+                      <YesNoField label="MD present" value={form.hasMd} onChange={(v) => update('hasMd', v)} />
+                      <YesNoField label="RN present" value={form.hasRn} onChange={(v) => update('hasRn', v)} />
+                      <YesNoField label="RT present" value={form.hasRt} onChange={(v) => update('hasRt', v)} />
+                      <YesNoField label="Dedicated timekeeper present" value={form.hasTimekeeper} onChange={(v) => update('hasTimekeeper', v)} />
+                      <YesNoField label="Dedicated chest movement observer present" value={form.hasChestObserver} onChange={(v) => update('hasChestObserver', v)} />
+                      <YesNoField label="Resuscitation-capable backup present" value={form.hasCodeSupport} onChange={(v) => update('hasCodeSupport', v)} />
+                    </div>
+
+                    <div className="space-y-3 rounded-3xl border p-4">
+                      <div className="flex items-center gap-2 text-sm font-medium"><TimerReset className="h-4 w-4" /> Test result capture</div>
+                      <YesNoField label="Any spontaneous respirations observed" value={form.spontaneousRespirations} onChange={(v) => update('spontaneousRespirations', v)} />
+                      <MetricField label="Post-apnea pH" value={form.postApneaPh} onChange={(e) => update('postApneaPh', e.target.value)} placeholder="7.28" />
+                      <MetricField label="Post-apnea PaCO2" value={form.postApneaPaco2} onChange={(e) => update('postApneaPaco2', e.target.value)} placeholder="63" />
+                      <div className="rounded-2xl bg-slate-100 p-3 text-sm text-slate-700">{derived.apneaInterpretation}</div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border p-4">
+                    <div className="mb-2 text-sm font-medium">Suggested team role split</div>
+                    <div className="space-y-2 text-sm text-slate-700">
+                      {derived.teamAssignments.length > 0 ? (
+                        derived.teamAssignments.map((item) => <div key={item}>• {item}</div>)
+                      ) : (
+                        <div>No roles selected yet.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 6 && (
+                <div className="space-y-6">
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <Card className="rounded-3xl border shadow-none">
+                      <CardHeader><CardTitle className="text-lg">Overall status</CardTitle></CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-800">{derived.overallStatus}</div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Blocking reasons</div>
+                          {derived.blockers.length ? derived.blockers.map((b) => (
+                            <div key={b} className="flex items-start gap-2 text-sm text-amber-800"><AlertTriangle className="mt-0.5 h-4 w-4" /> <span>{b}</span></div>
+                          )) : <div className="text-sm text-green-700">No active blocker listed from current inputs.</div>}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="rounded-3xl border shadow-none">
+                      <CardHeader><CardTitle className="text-lg">Ancillary testing advisor</CardTitle></CardHeader>
+                      <CardContent className="space-y-2">
+                        {derived.ancillaryIndications.length ? derived.ancillaryIndications.map((item) => (
+                          <div key={item} className="flex items-start gap-2 text-sm text-slate-700"><Brain className="mt-0.5 h-4 w-4" /> <span>{item}</span></div>
+                        )) : <div className="text-sm text-green-700">No ancillary trigger identified from the current prototype inputs.</div>}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card className="rounded-3xl border shadow-none">
+                    <CardHeader><CardTitle className="text-lg">Recommended next steps</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      {derived.recommendations.map((r) => (
+                        <div key={r} className="flex items-start gap-2 text-sm text-slate-700"><ChevronRight className="mt-0.5 h-4 w-4" /> <span>{r}</span></div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  <div className="space-y-2">
+                    <Label>Notes</Label>
+                    <Textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Free-text notes, barriers, or local policy items" className="min-h-[120px]" />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-slate-500">
+                  Prototype for workflow testing. Not for autonomous clinical determination.
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className="rounded-2xl">
+                    <ChevronLeft className="mr-2 h-4 w-4" /> Back
+                  </Button>
+                  <Button onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))} disabled={step === steps.length - 1} className="rounded-2xl">
+                    Next <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
 }
